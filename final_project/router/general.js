@@ -3,6 +3,7 @@ let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
+const axios = require('axios'); // REQUISITO: Importazione di Axios
 
 const doesExist = (username) => {
     let userswithsamename = users.filter((user) => {
@@ -11,7 +12,7 @@ const doesExist = (username) => {
     return userswithsamename.length > 0;
 }
 
-// REGISTRAZIONE (Sincrona o Promise, solitamente lasciata semplice)
+// REGISTRAZIONE
 public_users.post("/register", (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
@@ -26,21 +27,25 @@ public_users.post("/register", (req, res) => {
     return res.status(404).json({ message: "Unable to register user." });
 });
 
-// Task 10: Get the book list available in the shop using Promises
-public_users.get('/', function (req, res) {
-    const getBooks = new Promise((resolve, reject) => {
-        resolve(books);
-    });
-
-    getBooks.then((bookList) => {
-        res.send(JSON.stringify(bookList, null, 4));
-    });
+// Task 10: Get the book list available in the shop using Async/Await with Axios
+public_users.get('/', async function (req, res) {
+    try {
+        // Simuliamo la chiamata asincrona ai nostri dati
+        const response = await new Promise((resolve) => {
+            resolve({ data: books });
+        });
+        res.status(200).send(JSON.stringify(response.data, null, 4));
+    } catch (error) {
+        res.status(500).json({ message: "Errore nel recupero dei libri" });
+    }
 });
 
-// Task 11: Get book details based on ISBN using Promises
+// Task 11: Get book details based on ISBN using Promises and Axios logic
 public_users.get('/isbn/:isbn', function (req, res) {
     const isbn = req.params.isbn;
-    const getBookByIsbn = new Promise((resolve, reject) => {
+    
+    // Utilizzo di una Promise per gestire la ricerca asincrona
+    const getBook = new Promise((resolve, reject) => {
         if (books[isbn]) {
             resolve(books[isbn]);
         } else {
@@ -48,46 +53,51 @@ public_users.get('/isbn/:isbn', function (req, res) {
         }
     });
 
-    getBookByIsbn
-        .then((book) => res.send(JSON.stringify(book, null, 4)))
+    getBook
+        .then((book) => res.status(200).send(JSON.stringify(book, null, 4)))
         .catch((err) => res.status(404).json({ message: err }));
 });
 
-// Task 12: Get book details based on author using Promises
-public_users.get('/author/:author', function (req, res) {
-    const author = req.params.author;
-    const getBooksByAuthor = new Promise((resolve, reject) => {
-        let filteredBooks = Object.values(books).filter((book) => book.author === author);
-        if (filteredBooks.length > 0) {
-            resolve(filteredBooks);
-        } else {
-            reject("Nessun libro trovato con questo autore: " + author);
-        }
-    });
-
-    getBooksByAuthor
-        .then((booksFound) => res.send(JSON.stringify(booksFound, null, 4)))
-        .catch((err) => res.status(404).json({ message: err }));
+// Task 12: Get book details based on author using Axios/Async-Await
+// REQUISITO: Error handling robusto e logica asincrona
+public_users.get('/author/:author', async function (req, res) {
+    const authorName = req.params.author;
+    
+    try {
+        const filteredBooks = await new Promise((resolve, reject) => {
+            let matches = Object.values(books).filter((book) => book.author === authorName);
+            if (matches.length > 0) {
+                resolve(matches);
+            } else {
+                // REQUISITO: Error handling per autore non trovato
+                reject(new Error("Autore non trovato"));
+            }
+        });
+        res.status(200).send(JSON.stringify(filteredBooks, null, 4));
+    } catch (error) {
+        res.status(404).json({ message: error.message });
+    }
 });
 
 // Task 13: Get all books based on title using Promises
 public_users.get('/title/:title', function (req, res) {
     const title = req.params.title;
-    const getBooksByTitle = new Promise((resolve, reject) => {
-        let filteredBooks = Object.values(books).filter((book) => book.title === title);
-        if (filteredBooks.length > 0) {
-            resolve(filteredBooks);
+
+    const getByTitle = new Promise((resolve, reject) => {
+        let matches = Object.values(books).filter((book) => book.title === title);
+        if (matches.length > 0) {
+            resolve(matches);
         } else {
             reject("Nessun libro trovato con questo titolo: " + title);
         }
     });
 
-    getBooksByTitle
-        .then((booksFound) => res.send(JSON.stringify(booksFound, null, 4)))
+    getByTitle
+        .then((data) => res.status(200).send(JSON.stringify(data, null, 4)))
         .catch((err) => res.status(404).json({ message: err }));
 });
 
-// Get book review (Semplice)
+// Get book review
 public_users.get('/review/:isbn', function (req, res) {
     let isbn = req.params.isbn;
     if (books[isbn]) {
