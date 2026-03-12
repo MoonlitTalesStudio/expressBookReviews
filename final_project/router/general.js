@@ -4,72 +4,97 @@ let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
 
+const doesExist = (username) => {
+    let userswithsamename = users.filter((user) => {
+        return user.username === username
+    });
+    return userswithsamename.length > 0;
+}
 
+// REGISTRAZIONE (Sincrona o Promise, solitamente lasciata semplice)
 public_users.post("/register", (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
-    // Check if both username and password are provided
     if (username && password) {
-        // Check if the user does not already exist
         if (!doesExist(username)) {
-            // Add the new user to the users array
-            users.push({"username": username, "password": password});
-            return res.status(200).json({message: "User successfully registered. Now you can login"});
+            users.push({ "username": username, "password": password });
+            return res.status(200).json({ message: "User successfully registered. Now you can login" });
         } else {
-            return res.status(404).json({message: "User already exists!"});
+            return res.status(404).json({ message: "User already exists!" });
         }
     }
-    // Return error if username or password is missing
-    return res.status(404).json({message: "Unable to register user."});
+    return res.status(404).json({ message: "Unable to register user." });
 });
 
-// Get the book list available in the shop
+// Task 10: Get the book list available in the shop using Promises
 public_users.get('/', function (req, res) {
-    res.send(JSON.stringify(books, null, 4));
+    const getBooks = new Promise((resolve, reject) => {
+        resolve(books);
+    });
+
+    getBooks.then((bookList) => {
+        res.send(JSON.stringify(bookList, null, 4));
+    });
 });
 
-// Get book details based on ISBN
+// Task 11: Get book details based on ISBN using Promises
 public_users.get('/isbn/:isbn', function (req, res) {
-    let isbn = req.params.isbn;
+    const isbn = req.params.isbn;
+    const getBookByIsbn = new Promise((resolve, reject) => {
+        if (books[isbn]) {
+            resolve(books[isbn]);
+        } else {
+            reject("Nessun libro trovato con isbn: " + isbn);
+        }
+    });
 
-    if (books[isbn])
-        res.send(JSON.stringify(books[isbn], null, 4));
-    else
-        return res.status(404).json({ message: "Nessun libro trovato con isbn:" + isbn });
+    getBookByIsbn
+        .then((book) => res.send(JSON.stringify(book, null, 4)))
+        .catch((err) => res.status(404).json({ message: err }));
 });
 
-// Get book details based on author
+// Task 12: Get book details based on author using Promises
 public_users.get('/author/:author', function (req, res) {
-    let author = req.params.author;
-    let filteredBooks = Object.values(books).filter((book)=>{return book.author === author});
-    if(filteredBooks.length >0){
-        res.send(JSON.stringify(filteredBooks,null,4));
-    }
-    else{
-        return res.status(404).json({ message: "Nessun libro trovato con questo autore:" + author });
-    }
+    const author = req.params.author;
+    const getBooksByAuthor = new Promise((resolve, reject) => {
+        let filteredBooks = Object.values(books).filter((book) => book.author === author);
+        if (filteredBooks.length > 0) {
+            resolve(filteredBooks);
+        } else {
+            reject("Nessun libro trovato con questo autore: " + author);
+        }
+    });
+
+    getBooksByAuthor
+        .then((booksFound) => res.send(JSON.stringify(booksFound, null, 4)))
+        .catch((err) => res.status(404).json({ message: err }));
 });
 
-// Get all books based on title
+// Task 13: Get all books based on title using Promises
 public_users.get('/title/:title', function (req, res) {
-    let title = req.params.title;
-    let filteredBooks = Object.values(books).filter((book)=>{return book.title === title});
-    if(filteredBooks.length >0){
-        res.send(JSON.stringify(filteredBooks,null,4));
-    }
-    else{
-        return res.status(404).json({ message: "Nessun libro trovato con questo titolo:" + title });
-    }
+    const title = req.params.title;
+    const getBooksByTitle = new Promise((resolve, reject) => {
+        let filteredBooks = Object.values(books).filter((book) => book.title === title);
+        if (filteredBooks.length > 0) {
+            resolve(filteredBooks);
+        } else {
+            reject("Nessun libro trovato con questo titolo: " + title);
+        }
+    });
+
+    getBooksByTitle
+        .then((booksFound) => res.send(JSON.stringify(booksFound, null, 4)))
+        .catch((err) => res.status(404).json({ message: err }));
 });
 
-//  Get book review
+// Get book review (Semplice)
 public_users.get('/review/:isbn', function (req, res) {
     let isbn = req.params.isbn;
-
-    if (books[isbn])
+    if (books[isbn]) {
         res.send(JSON.stringify(books[isbn].reviews, null, 4));
-    else
-        return res.status(404).json({ message: "Nessuna recensione trovata per il libro con isbn:" + isbn });
+    } else {
+        return res.status(404).json({ message: "Nessuna recensione trovata per il libro con isbn: " + isbn });
+    }
 });
 
 module.exports.general = public_users;
