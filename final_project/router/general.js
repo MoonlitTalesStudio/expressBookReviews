@@ -12,7 +12,7 @@ const doesExist = (username) => {
     return userswithsamename.length > 0;
 }
 
-// REGISTRAZIONE
+// REGISTRAZIONE UTENTE
 public_users.post("/register", (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
@@ -27,24 +27,21 @@ public_users.post("/register", (req, res) => {
     return res.status(404).json({ message: "Unable to register user." });
 });
 
-// Task 10: Get the book list available in the shop using Async/Await with Axios
+// TASK 10: Get the book list available in the shop using Async/Await
 public_users.get('/', async function (req, res) {
     try {
-        // Simuliamo la chiamata asincrona ai nostri dati
-        const response = await new Promise((resolve) => {
-            resolve({ data: books });
+        const getBooks = await new Promise((resolve) => {
+            resolve(books);
         });
-        res.status(200).send(JSON.stringify(response.data, null, 4));
+        res.status(200).send(JSON.stringify(getBooks, null, 4));
     } catch (error) {
         res.status(500).json({ message: "Errore nel recupero dei libri" });
     }
 });
 
-// Task 11: Get book details based on ISBN using Promises and Axios logic
+// TASK 11: Get book details based on ISBN using Promises
 public_users.get('/isbn/:isbn', function (req, res) {
     const isbn = req.params.isbn;
-    
-    // Utilizzo di una Promise per gestire la ricerca asincrona
     const getBook = new Promise((resolve, reject) => {
         if (books[isbn]) {
             resolve(books[isbn]);
@@ -58,50 +55,47 @@ public_users.get('/isbn/:isbn', function (req, res) {
         .catch((err) => res.status(404).json({ message: err }));
 });
 
-// Task 12: Get book details based on author using Axios/Async-Await
-// REQUISITO: Error handling robusto e logica asincrona
+// TASK 12: Get book details based on author using Async/Await
 public_users.get('/author/:author', async function (req, res) {
-    const authorName = req.params.author;
-    
+    const author = req.params.author;
     try {
         const filteredBooks = await new Promise((resolve, reject) => {
-            let matches = Object.values(books).filter((book) => book.author === authorName);
+            let matches = Object.values(books).filter((b) => b.author === author);
             if (matches.length > 0) {
                 resolve(matches);
             } else {
-                // REQUISITO: Error handling per autore non trovato
-                reject(new Error("Autore non trovato"));
+                reject("Nessun libro trovato per questo autore: " + author);
             }
         });
         res.status(200).send(JSON.stringify(filteredBooks, null, 4));
     } catch (error) {
-        res.status(404).json({ message: error.message });
+        res.status(404).json({ message: error });
     }
 });
 
-// Task 13: Get all books based on title using Promises
-public_users.get('/title/:title', function (req, res) {
+// TASK 13: Get all books based on title using Async/Await
+public_users.get('/title/:title', async function (req, res) {
     const title = req.params.title;
-
-    const getByTitle = new Promise((resolve, reject) => {
-        let matches = Object.values(books).filter((book) => book.title === title);
-        if (matches.length > 0) {
-            resolve(matches);
-        } else {
-            reject("Nessun libro trovato con questo titolo: " + title);
-        }
-    });
-
-    getByTitle
-        .then((data) => res.status(200).send(JSON.stringify(data, null, 4)))
-        .catch((err) => res.status(404).json({ message: err }));
+    try {
+        const filteredBooks = await new Promise((resolve, reject) => {
+            let matches = Object.values(books).filter((b) => b.title === title);
+            if (matches.length > 0) {
+                resolve(matches);
+            } else {
+                reject("Nessun libro trovato con questo titolo: " + title);
+            }
+        });
+        res.status(200).send(JSON.stringify(filteredBooks, null, 4));
+    } catch (error) {
+        res.status(404).json({ message: error });
+    }
 });
 
-// Get book review
+// RECENSIONI DEL LIBRO
 public_users.get('/review/:isbn', function (req, res) {
     let isbn = req.params.isbn;
     if (books[isbn]) {
-        res.send(JSON.stringify(books[isbn].reviews, null, 4));
+        res.status(200).send(JSON.stringify(books[isbn].reviews, null, 4));
     } else {
         return res.status(404).json({ message: "Nessuna recensione trovata per il libro con isbn: " + isbn });
     }
